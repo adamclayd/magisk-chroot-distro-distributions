@@ -1,5 +1,5 @@
 # magisk-chroot-distro-distributions
-A repo that has custom made Magisk Chroot Distro Linux Distributions with a configure script in the chroot environment.
+A repo that has custom made Magisk Chroot Distro Linux Distributions in which come with a configure script in the chroot environment to at least create a VNC user.
 
 ## Prerequisites
 - Android device rooted with [Magisk](https://github.com/topjohnwu/magisk)
