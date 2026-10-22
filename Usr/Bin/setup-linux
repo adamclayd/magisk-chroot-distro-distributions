@@ -1,0 +1,70 @@
+#!/bin/bash
+set -e
+
+if [ $EUID -ne 0 ]; then
+  echo "You must run this as root"
+  exit 1
+fi
+
+if [ -f /etc/deskop-user ]; then
+  echo "Ubuntu/KDE/VNC/TeamViewer already initiated"
+  exit 1
+fi
+
+echo -e "=== First-time desktop setup ===\n"
+read -p "Username: " U
+
+while true; do
+  read -s -p "Password: " P; echo
+  read -s -p "Confirm:  " P2; echo
+  [ "$P" = "$P2" ] && [ -n "$P" ] && break
+  echo "Didn't match, try again."
+done
+echo ""
+
+res=""
+# 1. Android's wm (most reliable)
+chroot /proc/1/root /system/bin/sh -c 'PATH=/system/bin wm size </dev/null >/data/local/tmp/wm.txt 2>&1' 2>/dev/null || true
+line=$(grep -o '[0-9]*x[0-9]*' /proc/1/root/data/local/tmp/wm.txt 2>/dev/null | tail -1) || true
+[ -n "$line" ] && res="$line"
+
+# 2. framebuffer
+if [ -z "$res" ] && [ -f /sys/class/graphics/fb0/virtual_size ]; then
+  v=$(cat /sys/class/graphics/fb0/virtual_size)
+  res="${v%%,*}x${v#*,}"
+fi
+
+# 3. DRM
+if [ -z "$res" ]; then
+  res=$(cat /sys/class/drm/*/modes 2>/dev/null | head -1) || true
+fi
+
+# flip to landscape, default if nothing found
+if [ -n "$res" ]; then
+  w=${res%%x*}; h=${res#*x}
+  [ "$w" -lt "$h" ] && res="${h}x${w}"
+fi
+res=${res:-1920x1200}
+
+read -p "Screen resolution [$res]: " R
+R=${R:-$res}
+
+echo ""
+
+useradd -m -s /bin/bash -G sudo "$U"
+echo "$U:$P" | chpasswd
+
+H=/home/$U
+mkdir -p $H/.vnc $H/.config/tigervnc
+echo "$P" | vncpasswd -f > $H/.vnc/passwd
+chmod 600 $H/.vnc/passwd
+printf '#!/bin/sh\nunset SESSION_MANAGER DBUS_SESSION_BUS_ADDRESS\nexport XDG_SESSION_TYPE=x11\nexec dbus-launch --exit-with-session startplasma-x11\n' > $H/.vnc/xstartup
+chmod +x $H/.vnc/xstartup
+cp $H/.vnc/xstartup $H/.config/tigervnc/xstartup
+chown -R "$U:$U" $H
+
+dbus-uuidgen > /etc/machine-id
+cp /etc/machine-id /var/lib/dbus/machine-id
+echo "$U" > /etc/desktop-user
+echo "$R" > /etc/desktop-res
+echo -e "Done.\n\nStart the desktop with:\n  desktop-start\n\nIf you want to use TeamViewer instead of VNC then you will have to login as $U in a VNC client and run the following to setup TeamViewer:\n  teamviewer\n"
