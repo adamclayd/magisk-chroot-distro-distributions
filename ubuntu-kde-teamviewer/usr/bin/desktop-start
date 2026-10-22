@@ -1,0 +1,13 @@
+#!/bin/sh
+U=$(cat /etc/desktop-user)
+R=$(cat /etc/desktop-res)
+tvinfo=$(su - "$U" -c "teamviewer info 2>/dev/null | grep -qi \"TeamViewer ID\"")
+
+/opt/teamviewer/tv_bin/teamviewerd -d
+
+su - "$U" -c "vncserver :${1:-"1"} -geometry $R"
+
+if $tvinfo; then
+  sleep 5
+  su - "$U" -c "DISPLAY=:${1:-"1"} teamviewer >/dev/null 2>&1 &"
+fi

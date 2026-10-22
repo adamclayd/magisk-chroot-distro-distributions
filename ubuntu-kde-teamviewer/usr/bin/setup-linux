@@ -12,6 +12,8 @@ if [ -f /etc/deskop-user ]; then
 fi
 
 echo -e "=== First-time desktop setup ===\n"
+
+# create defaul vnc user
 read -p "Username: " U
 
 while true; do
@@ -20,8 +22,12 @@ while true; do
   [ "$P" = "$P2" ] && [ -n "$P" ] && break
   echo "Didn't match, try again."
 done
+
+useradd -m -s /bin/bash -G sudo "$U"                                                                                                                                               echo "$U:$P" | chpasswd
+
 echo ""
 
+# get default resolution for input
 res=""
 # 1. Android's wm (most reliable)
 chroot /proc/1/root /system/bin/sh -c 'PATH=/system/bin wm size </dev/null >/data/local/tmp/wm.txt 2>&1' 2>/dev/null || true
@@ -51,9 +57,7 @@ R=${R:-$res}
 
 echo ""
 
-useradd -m -s /bin/bash -G sudo "$U"
-echo "$U:$P" | chpasswd
-
+# create vnc files for user
 H=/home/$U
 mkdir -p $H/.vnc $H/.config/tigervnc
 echo "$P" | vncpasswd -f > $H/.vnc/passwd
@@ -63,8 +67,13 @@ chmod +x $H/.vnc/xstartup
 cp $H/.vnc/xstartup $H/.config/tigervnc/xstartup
 chown -R "$U:$U" $H
 
+# set machine id, user, and resolution in /etc files (used by desktop-start)
 dbus-uuidgen > /etc/machine-id
 cp /etc/machine-id /var/lib/dbus/machine-id
 echo "$U" > /etc/desktop-user
 echo "$R" > /etc/desktop-res
+
+# set KDE as default window manager (for TeamViewer)
+update-alternatives --set x-session-manager /usr/bin/startplasma-x11
+
 echo -e "Done.\n\nStart the desktop with:\n  desktop-start\n\nIf you want to use TeamViewer instead of VNC then you will have to login as $U in a VNC client and run the following to setup TeamViewer:\n  teamviewer\n"
