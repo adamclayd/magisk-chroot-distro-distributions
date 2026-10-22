@@ -13,7 +13,7 @@ To use these linux distributions you will have to root your device with Magisk a
 **[chroot-distro releases](https://github.com/Magisk-Modules-Alt-Repo/chroot-distro/releases)**
 
 
-### Install chroot-distro
+## Install chroot-distro
 
 1. Download the latest chroot-distro module from the link above
 2. Go to the Magisk app.
@@ -22,8 +22,25 @@ To use these linux distributions you will have to root your device with Magisk a
 4. Browse for the zip file that you downloaded in Step 1 and install it.
 5. Reboot
 
+### Kill Script
 
-### Distributions
+You may need to script provided in the root of hte repo to kill the chroot-distro environment. Sometimes `chroot-distro unmount` gives up on /dev even with no processes holding it. The script lazy unmounts the leftover mount points, which detaches each mount even if the system thinks it's busy so the chrooted environment can be killed.
+
+**Usage:**
+
+```bash
+# must be ran as root
+
+su
+chmod +x stop-distro.sh
+./stop-distro.sh {distro-type} # distro-type: ubuntu, fedora, debian, etc
+```
+
+**[Kill Script](./stop-distro.sh)**
+
+
+## Distributions
 
 [Ubuntu/KDE/TeamViewer](./ubuntu-kde-teamviewer/README.md)
+
 
